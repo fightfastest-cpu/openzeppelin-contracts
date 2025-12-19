@@ -177,7 +177,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      * 目的：内部通用更新函数，用于实现 ERC-20 的铸币（mint）、燃烧（burn）和转账（transfer）逻辑，并触发 Transfer 事件。
 参数：from（源地址），to（目标地址），value（变动数量）。
 分支逻辑：
-if from == address(0)：表示铸币（mint）。直接将 _totalSupply += value（增加总供应量）。
+ from == address(0)：表示铸币（mint）。直接将 _totalSupply += value（增加总供应量）。
 else：表示非铸币操作（转账或燃烧）。先读 from 的余额 fromBalance = _balances[from]，如果 fromBalance < value 则通过自定义错误 ERC20InsufficientBalance(from, fromBalance, value) revert（防止下溢与非法支出）。在已验证后，用 unchecked 将 _balances[from] = fromBalance - value（从余额扣除）。
 之后处理接收端：
 if to == address(0)：表示燃烧（burn）。在 unchecked 中将 _totalSupply -= value（减少总供应量）。
@@ -201,14 +201,20 @@ else：表示转入某地址。用 unchecked 将 _balances[to] += value（增加
      * */
     function _update(address from, address to, uint256 value) internal virtual {
         if (from == address(0)) {
+            //  from == address(0)：表示铸币（mint）。直接将 _totalSupply += value（增加总供应量）。
             // Overflow check required: The rest of the code assumes that totalSupply never overflows
             _totalSupply += value;
         } else {
+            // 表示非铸币操作（转账或燃烧）。
+            // 先读 from 的余额 fromBalance = _balances[from]，
+            // 之后处理接收端：
             uint256 fromBalance = _balances[from];
+            // 如果 fromBalance < value 则通过自定义错误 ERC20InsufficientBalance(from, fromBalance, value) revert（防止下溢与非法支出）。
             if (fromBalance < value) {
                 revert ERC20InsufficientBalance(from, fromBalance, value);
             }
             unchecked {
+                // 在已验证后，用 unchecked 将 _balances[from] = fromBalance - value（从余额扣除）。
                 // Overflow not possible: value <= fromBalance <= totalSupply.
                 _balances[from] = fromBalance - value;
             }
