@@ -96,7 +96,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      * - the caller must have a balance of at least `value`.
      */
     function transfer(address to, uint256 value) public virtual returns (bool) {
-        address owner = _msgSender();
+        address owner = _msgSender(); //msg.sender
         _transfer(owner, to, value);
         return true;
     }
@@ -156,6 +156,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
     function _transfer(address from, address to, uint256 value) internal {
+        // 不能为零地址
         if (from == address(0)) {
             revert ERC20InvalidSender(address(0));
         }
@@ -172,6 +173,32 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      *
      * Emits a {Transfer} event.
      */
+    /**
+     * 目的：内部通用更新函数，用于实现 ERC-20 的铸币（mint）、燃烧（burn）和转账（transfer）逻辑，并触发 Transfer 事件。
+参数：from（源地址），to（目标地址），value（变动数量）。
+分支逻辑：
+if from == address(0)：表示铸币（mint）。直接将 _totalSupply += value（增加总供应量）。
+else：表示非铸币操作（转账或燃烧）。先读 from 的余额 fromBalance = _balances[from]，如果 fromBalance < value 则通过自定义错误 ERC20InsufficientBalance(from, fromBalance, value) revert（防止下溢与非法支出）。在已验证后，用 unchecked 将 _balances[from] = fromBalance - value（从余额扣除）。
+之后处理接收端：
+if to == address(0)：表示燃烧（burn）。在 unchecked 中将 _totalSupply -= value（减少总供应量）。
+else：表示转入某地址。用 unchecked 将 _balances[to] += value（增加接收者余额）。
+事件：无论哪种情况最后都会 emit Transfer(from, to, value)，符合 ERC-20 规范（铸币为 from==0 的 Transfer，燃烧为 to==0 的 Transfer）。
+关于 unchecked 与注释中的溢出/下溢保证：
+在对 from 扣减时，函数先检查 fromBalance >= value，因此使用 unchecked 是安全的（不会下溢）。
+在对 _totalSupply 增加时，注释假定总供应不会溢出（外部保证或上下文约束），所以加法未做溢出检查。
+在把 value 加到 to 的余额时，注释指出余额上限由 _totalSupply 保证，且在前面已对 _totalSupply 做相应处理，因此 balance + value 不会溢出 uint256，使用 unchecked 是为了省 gas。
+语义与顺序要点：
+铸币路径先增加 _totalSupply，再在接收分支把额度加到接收者（保证总量先行）。
+燃烧路径先从 from 扣除余额，再减少 _totalSupply（两步都用 unchecked 在已验证条件下安全执行）。
+可扩展性：函数声明为 internal virtual，意味着合约内部使用并允许子合约覆盖以添加额外逻辑（例如 hooks、访问控制、事件扩展等）。
+错误与安全提示：
+使用自定义错误 ERC20InsufficientBalance 提供更低 gas 的 revert 信息。
+正确触发 Transfer 事件对于 ERC-20 合规性与外部索引器（例如 TheGraph）非常重要。
+需要确保在更高层（或整体合约设计）中维护“不发生 totalSupply 溢出”的不变式。
+     * 
+     * 
+     * 
+     * */
     function _update(address from, address to, uint256 value) internal virtual {
         if (from == address(0)) {
             // Overflow check required: The rest of the code assumes that totalSupply never overflows
@@ -226,6 +253,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      * NOTE: This function is not virtual, {_update} should be overridden instead
      */
     function _burn(address account, uint256 value) internal {
+        // 不能为零地址
         if (account == address(0)) {
             revert ERC20InvalidSender(address(0));
         }
