@@ -193,11 +193,15 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
         // 2. 燃烧： from 不为零地址，to为零地址
         // 2.1 从from扣除余额
         // 2.2 在 unchecked 中将 _totalSupply -= value， 减少总供应量
+
+        // 3. 转账： from 不为零地址，to不为零地址
+        // 3.1 先读 from 的余额 fromBalance = _balances[from]
+        // 3.2 再对 to 增加余额 _balances[to] += value
         if (from == address(0)) {
             // 表示铸币（mint）。直接将 _totalSupply += value（增加总供应量）。
             _totalSupply += value;
         } else {
-            // 表示非铸币操作（转账或燃烧）。
+            // 转账或燃烧
             // 先读 from 的余额 fromBalance = _balances[from]，
             // 之后处理接收端：
             uint256 fromBalance = _balances[from];
@@ -234,7 +238,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
     function _mint(address account, uint256 value) internal {
-        if (account == address(0)) {
+        if (account == address(0)) {   
             revert ERC20InvalidReceiver(address(0));
         }
         _update(address(0), account, value);
