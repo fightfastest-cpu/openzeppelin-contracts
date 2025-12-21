@@ -16,7 +16,11 @@ import {IERC721Errors} from "../../interfaces/draft-IERC6093.sol";
  * the Metadata extension, but not including the Enumerable extension, which is available separately as
  * {ERC721Enumerable}.
  */
+
 abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Errors {
+    // tokenId 是 ERC‑721 合约中每个 NFT 的唯一标识（key），
+    // 用来在合约内查 ownership、授权、转移和查元数据
+
     using Strings for uint256;
 
     // Token name
@@ -50,7 +54,9 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
     }
 
     /// @inheritdoc IERC721
+    // 获取某地址拥有的 NFT 数量
     function balanceOf(address owner) public view virtual returns (uint256) {
+        // 获取余额
         if (owner == address(0)) {
             revert ERC721InvalidOwner(address(0));
         }
@@ -58,6 +64,7 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
     }
 
     /// @inheritdoc IERC721
+    // 获取某 NFT 的拥有者地址 重点是 tokenId
     function ownerOf(uint256 tokenId) public view virtual returns (address) {
         return _requireOwned(tokenId);
     }
@@ -143,6 +150,7 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
      * consistent with ownership. The invariant to preserve is that for any address `a` the value returned by
      * `balanceOf(a)` must be equal to the number of tokens such that `_ownerOf(tokenId)` is `a`.
      */
+    // 通过 tokenId 获取 owner 地址
     function _ownerOf(uint256 tokenId) internal view virtual returns (address) {
         return _owners[tokenId];
     }
@@ -150,6 +158,7 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
     /**
      * @dev Returns the approved address for `tokenId`. Returns 0 if `tokenId` is not minted.
      */
+    // 通过 tokenId 获取被批准的地址
     function _getApproved(uint256 tokenId) internal view virtual returns (address) {
         return _tokenApprovals[tokenId];
     }
@@ -161,6 +170,8 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
      * WARNING: This function assumes that `owner` is the actual owner of `tokenId` and does not verify this
      * assumption.
      */
+    // 检查owner 对 spender 是否受猪
+    // 或者说通过tokenId获取到的address 是否等于 spender
     function _isAuthorized(address owner, address spender, uint256 tokenId) internal view virtual returns (bool) {
         return
             spender != address(0) &&
@@ -176,6 +187,7 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
      * WARNING: This function assumes that `owner` is the actual owner of `tokenId` and does not verify this
      * assumption.
      */
+    // 检查是否被授权操作 tokenId
     function _checkAuthorized(address owner, address spender, uint256 tokenId) internal view virtual {
         if (!_isAuthorized(owner, spender, tokenId)) {
             if (owner == address(0)) {
@@ -196,6 +208,7 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
      * {_ownerOf} function to resolve the ownership of the corresponding tokens so that balances and ownership
      * remain consistent with one another.
      */
+    // 增加某地址的 NFT 数量
     function _increaseBalance(address account, uint128 value) internal virtual {
         unchecked {
             _balances[account] += value;
@@ -213,11 +226,17 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
      *
      * NOTE: If overriding this function in a way that tracks balances, see also {_increaseBalance}.
      */
+    // 核心函数 用于更新 tokenId 的所有者（可能是转移、铸造或销毁），并返回更新前的拥有者地址。
     function _update(address to, uint256 tokenId, address auth) internal virtual returns (address) {
+        // to — 目标地址（address(0) 表示销毁）；
+        // tokenId — NFT 标识；
+        // auth — 可选的授权检查者（address(0) 跳过授权检查）
         address from = _ownerOf(tokenId);
 
         // Perform (optional) operator check
+        //
         if (auth != address(0)) {
+            // 检查授权
             _checkAuthorized(from, auth, tokenId);
         }
 
