@@ -239,38 +239,47 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
      */
     /** @dev 主要作用：核心写入方法，更新 `tokenId` 的拥有者（支持转移、铸造、销毁），并返回之前的拥有者。 */
     function _update(address to, uint256 tokenId, address auth) internal virtual returns (address) {
-        // to — 目标地址（address(0) 表示销毁）；
-        // tokenId — NFT 标识；
+        // 函数声明说明：内部可重写，更新 tokenId 的所有者，返回更新前的拥有者地址
+        // to — 目标地址（address(0) 表示销毁）
+        // tokenId — NFT 标识
         // auth — 可选的授权检查者（address(0) 跳过授权检查）
+        // 读取当前拥有者（若未铸造则返回 address(0)）
         address from = _ownerOf(tokenId);
 
         // Perform (optional) operator check
-        //
+        // 如果提供了 auth，则进行授权校验，否则跳过
         if (auth != address(0)) {
-            // 检查授权
+            // 如果 auth 非零，验证其是否被授权操作该 tokenId；未授权会 revert
             _checkAuthorized(from, auth, tokenId);
         }
 
         // Execute the update
+        // 如果原拥有者存在（非零），先清除单-token 授权并减少原拥有者余额
         if (from != address(0)) {
-            // Clear approval. No need to re-authorize or emit the Approval event
+            // 清除该 token 的单-token 授权；emitEvent=false 跳过 Approval 事件
             _approve(address(0), tokenId, address(0), false);
 
             unchecked {
+                // 在 unchecked 中减少原拥有者余额（正常逻辑下不会 underflow）
                 _balances[from] -= 1;
             }
         }
 
+        // 如果目标地址非零（非销毁），增加目标地址的余额
         if (to != address(0)) {
             unchecked {
+                // 在 unchecked 中增加目标余额（正常逻辑下不会 overflow）
                 _balances[to] += 1;
             }
         }
 
+        // 更新 ownership 映射：将 tokenId 的拥有者设为 to（写零地址表示销毁）
         _owners[tokenId] = to;
 
+        // 触发 Transfer 事件，包含铸造（from==0）和销毁（to==0）的场景
         emit Transfer(from, to, tokenId);
 
+        // 返回更新前的拥有者地址，供调用方使用或校验
         return from;
     }
 
