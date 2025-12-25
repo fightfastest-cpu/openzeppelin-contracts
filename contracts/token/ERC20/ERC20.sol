@@ -87,14 +87,9 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
         return _balances[account];
     }
 
-    /**
-     * @dev See {IERC20-transfer}.
-     *
-     * Requirements:
-     *
-     * - `to` cannot be the zero address.
-     * - the caller must have a balance of at least `value`.
-     */
+    // 调用者从自己的账户转账给 to
+    // 要求：调用者必须有足够余额
+    // 适用场景：用户自己转账
     function transfer(address to, uint256 value) public virtual returns (bool) {
         address owner = _msgSender(); //msg.sender
         _transfer(owner, to, value);
@@ -102,6 +97,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
     }
 
     /// @inheritdoc IERC20
+    // 授权额度查询
     function allowance(address owner, address spender) public view virtual returns (uint256) {
         return _allowances[owner][spender];
     }
@@ -138,10 +134,11 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      * - the caller must have allowance for ``from``'s tokens of at least
      * `value`.
      */
+    // 调用者从 from 账户转账给 to
     function transferFrom(address from, address to, uint256 value) public virtual returns (bool) {
         address spender = _msgSender();
-        _spendAllowance(from, spender, value);
-        _transfer(from, to, value);
+        _spendAllowance(from, spender, value); // 先收取按额度，允许的支出
+        _transfer(from, to, value); // 再执行转账
         return true;
     }
 
@@ -155,6 +152,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
+    // 转账
     function _transfer(address from, address to, uint256 value) internal {
         // 不能为零地址
         if (from == address(0)) {
@@ -237,6 +235,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
+    // 铸币
     function _mint(address account, uint256 value) internal {
         if (account == address(0)) {
             revert ERC20InvalidReceiver(address(0));
@@ -252,6 +251,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead
      */
+    // 燃烧
     function _burn(address account, uint256 value) internal {
         // 不能为零地址
         if (account == address(0)) {
@@ -297,6 +297,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      *
      * Requirements are the same as {_approve}.
      */
+    // 授权额度
     function _approve(address owner, address spender, uint256 value, bool emitEvent) internal virtual {
         if (owner == address(0)) {
             revert ERC20InvalidApprover(address(0));
@@ -318,6 +319,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      *
      * Does not emit an {Approval} event.
      */
+    // 消耗授权额度
     function _spendAllowance(address owner, address spender, uint256 value) internal virtual {
         uint256 currentAllowance = allowance(owner, spender);
         if (currentAllowance < type(uint256).max) {
