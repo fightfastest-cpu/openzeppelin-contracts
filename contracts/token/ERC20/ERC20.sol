@@ -27,9 +27,9 @@ import {IERC20Errors} from "../../interfaces/draft-IERC6093.sol";
  * applications.
  */
 abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
-    mapping(address account => uint256) private _balances;
+    mapping(address account => uint256) private _balances; // adderess => balance
 
-    mapping(address account => mapping(address spender => uint256)) private _allowances;
+    mapping(address account => mapping(address spender => uint256)) private _allowances; // address => (spender => allowance)
 
     uint256 private _totalSupply;
     string private _name;
@@ -238,7 +238,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
     function _mint(address account, uint256 value) internal {
-        if (account == address(0)) {   
+        if (account == address(0)) {
             revert ERC20InvalidReceiver(address(0));
         }
         _update(address(0), account, value);
