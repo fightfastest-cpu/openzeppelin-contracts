@@ -243,18 +243,17 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
         // to — 目标地址（address(0) 表示销毁）
         // tokenId — NFT 标识
         // auth — 可选的授权检查者（address(0) 跳过授权检查）
-        // 读取当前拥有者（若未铸造则返回 address(0)）
+
+        // 1. 读取当前拥有者（若未铸造则返回 address(0)）
         address from = _ownerOf(tokenId);
 
-        // Perform (optional) operator check
-        // 如果提供了 auth，则进行授权校验，否则跳过
+        // 2. 授权检查：如果 auth 非零，验证其是否有权操作该 tokenId
         if (auth != address(0)) {
             // 如果 auth 非零，验证其是否被授权操作该 tokenId；未授权会 revert
             _checkAuthorized(from, auth, tokenId);
         }
 
-        // Execute the update
-        // 如果原拥有者存在（非零），先清除单-token 授权并减少原拥有者余额
+        //3. 如果原拥有者存在，清除授权并减少余额
         if (from != address(0)) {
             // 清除该 token 的单-token 授权；emitEvent=false 跳过 Approval 事件
             _approve(address(0), tokenId, address(0), false);
@@ -265,7 +264,7 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
             }
         }
 
-        // 如果目标地址非零（非销毁），增加目标地址的余额
+        // 4. 如果目标地址非零（非销毁），增加目标余额
         if (to != address(0)) {
             unchecked {
                 // 在 unchecked 中增加目标余额（正常逻辑下不会 overflow）
@@ -273,7 +272,7 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
             }
         }
 
-        // 更新 ownership 映射：将 tokenId 的拥有者设为 to（写零地址表示销毁）
+        // 5. 更新所有权映射
         _owners[tokenId] = to;
 
         // 触发 Transfer 事件，包含铸造（from==0）和销毁（to==0）的场景
@@ -372,7 +371,7 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
         } else if (previousOwner != from) {
             revert ERC721IncorrectOwner(from, tokenId, previousOwner);
         }
-    }
+    } 
 
     /**
      * @dev Safely transfers `tokenId` token from `from` to `to`, checking that contract recipients
@@ -481,7 +480,3 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
         return owner;
     }
 }
-
-
-
-
